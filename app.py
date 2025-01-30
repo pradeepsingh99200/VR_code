@@ -1,13 +1,8 @@
 from flask import Flask, request, send_file, render_template
 import qrcode
-import os
-from waitress import serve  # Production WSGI server
+from io import BytesIO
 
 app = Flask(__name__)
-
-# Folder to save QR codes
-QR_FOLDER = "static/qr_codes"
-os.makedirs(QR_FOLDER, exist_ok=True)
 
 @app.route('/')
 def home():
@@ -31,18 +26,38 @@ def generate_qr():
 
     img = qr.make_image(fill='black', back_color='white')
 
-    qr_filename = f"qr_{hash(data)}.png"
-    qr_path = os.path.join(QR_FOLDER, qr_filename)
-    img.save(qr_path)
+    # Save the QR code to a BytesIO buffer instead of a file
+    img_io = BytesIO()
+    img.save(img_io, 'PNG')
+    img_io.seek(0)
 
-    return render_template('index.html', qr_code=qr_filename)
+    return send_file(img_io, mimetype='image/png')
 
-@app.route('/download_qr/<filename>')
-def download_qr(filename):
-    return send_file(os.path.join(QR_FOLDER, filename), as_attachment=True)
+@app.route('/download_qr', methods=['GET'])
+def download_qr():
+    data = request.args.get('data', '')
+    
+    if not data:
+        return "Error: No data provided!", 400
 
-def run():
-    serve(app, host="0.0.0.0", port=5000)
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=5,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
 
+    img = qr.make_image(fill='black', back_color='white')
+
+    # Save the QR code to a BytesIO buffer for download
+    img_io = BytesIO()
+    img.save(img_io, 'PNG')
+    img_io.seek(0)
+
+    return send_file(img_io, as_attachment=True, download_name="qr_code.png", mimetype='image/png')
+
+# Use this for local development, though Vercel will handle the ASGI server
 if __name__ == '__main__':
-    run()
+    app.run(debug=True)
