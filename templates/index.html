@@ -12,14 +12,13 @@
         <input type="text" name="data" placeholder="Enter text or URL" required>
         <button type="submit">Generate</button>
     </form>
-    
 
     {% if qr_code %}
         <div>
             <h3>Your QR Code:</h3>
-            <img src="{{ url_for('static', filename='qr_codes/' + qr_code) }}" alt="QR Code">
+            <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code">
             <br>
-            <a href="{{ url_for('download_qr', filename=qr_code) }}" class="download-btn">Download QR Code</a>
+            <a href="{{ url_for('download_qr', data=qr_data) }}" class="download-btn">Download QR Code</a>
         </div>
     {% endif %}
 </body>

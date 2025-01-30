@@ -1,6 +1,7 @@
 from flask import Flask, request, send_file, render_template
 import qrcode
 from io import BytesIO
+import base64
 
 app = Flask(__name__)
 
@@ -15,6 +16,7 @@ def generate_qr():
     if not data:
         return "Error: No data provided!", 400
 
+    # Generate QR code
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -26,12 +28,15 @@ def generate_qr():
 
     img = qr.make_image(fill='black', back_color='white')
 
-    # Save the QR code to a BytesIO buffer instead of a file
+    # Save the QR code to a BytesIO buffer
     img_io = BytesIO()
     img.save(img_io, 'PNG')
     img_io.seek(0)
 
-    return send_file(img_io, mimetype='image/png')
+    # Convert the image to base64
+    img_base64 = base64.b64encode(img_io.getvalue()).decode('utf-8')
+
+    return render_template('index.html', qr_code=img_base64, qr_data=data)
 
 @app.route('/download_qr', methods=['GET'])
 def download_qr():
@@ -40,6 +45,7 @@ def download_qr():
     if not data:
         return "Error: No data provided!", 400
 
+    # Generate QR code for download
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
